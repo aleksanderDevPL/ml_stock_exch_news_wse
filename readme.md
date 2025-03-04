@@ -8,9 +8,11 @@
 
 
 ## 🧠 O projekcie
-**I Stock Price Change News Predictor** to model uczenia maszynowego analizujący komunikaty bieżące i okresowe spółek giełdowych. Celem modelu jest przewidywanie wpływu treści komunikatów na zmiany cen akcji w dniu publikacji.
+**AI Stock Price Change News Predictor** to model uczenia maszynowego analizujący komunikaty bieżące i okresowe spółek giełdowych. Celem modelu jest przewidywanie wpływu treści komunikatów na zmiany cen akcji w dniu publikacji.
 
-Model został wytrenowany na podstawie tysięcy historycznych publicznych komunikatów giełdowych oraz historycznych cen akcji spółek notowanych na Giełdzie Papierów Wartościowych w Warszawie (Warsaw Stock Exchange). Wykorzystuje **inżynierię cech (Feature Engineering)** oraz **analizę tekstu (NLP)** do wyodrębnienia istotnych informacji wpływających na rynek.
+Model został wytrenowany na podstawie tysięcy historycznych publicznych komunikatów giełdowych oraz historycznych cen akcji spółek notowanych na Giełdzie Papierów Wartościowych w Warszawie (Warsaw Stock Exchange). 
+
+Model wykorzystuje **inżynierię cech (Feature Engineering)** oraz **analizę tekstu (NLP)** do wyodrębnienia istotnych informacji wpływających na rynek.
 
 ---
 
