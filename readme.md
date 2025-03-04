@@ -1,78 +1,82 @@
-# 📈 AI Stock Impact Predictor
+# 📈 AI Stock Price Change News Predictor
 
-![ML](https://img.shields.io/badge/Machine%20Learning-blue)
 ![NLP](https://img.shields.io/badge/NLP-yellow)
 ![Finance](https://img.shields.io/badge/Finance-green)
+![R](https://img.shields.io/badge/R-blue)  
+![Machine Learning](https://img.shields.io/badge/Machine%20Learning-blue)  
+![Text Classification](https://img.shields.io/badge/Text%20Classification-orange)  
+
 
 ## 🧠 O projekcie
-**AI Stock Impact Predictor** to model uczenia maszynowego analizujący komunikaty bieżące i okresowe spółek giełdowych. Celem modelu jest przewidywanie wpływu treści komunikatów na zmiany cen akcji w dniu publikacji.
+**I Stock Price Change News Predictor** to model uczenia maszynowego analizujący komunikaty bieżące i okresowe spółek giełdowych. Celem modelu jest przewidywanie wpływu treści komunikatów na zmiany cen akcji w dniu publikacji.
 
-Model został wytrenowany na podstawie tysięcy historycznych komunikatów giełdowych oraz historycznych cen akcji. Wykorzystuje **inżynierię cech (Feature Engineering)** oraz **analizę tekstu (NLP)** do wyodrębnienia istotnych informacji wpływających na rynek.
-
----
-
-## 🚀 Instalacja
-Aby uruchomić model lokalnie, wykonaj poniższe kroki:
-
-```bash
-# Klonowanie repozytorium
-git clone https://github.com/user/repo.git
-cd repo
-
-# Instalacja zależności
-pip install -r requirements.txt
-```
+Model został wytrenowany na podstawie tysięcy historycznych publicznych komunikatów giełdowych oraz historycznych cen akcji spółek notowanych na Giełdzie Papierów Wartościowych w Warszawie (Warsaw Stock Exchange). Wykorzystuje **inżynierię cech (Feature Engineering)** oraz **analizę tekstu (NLP)** do wyodrębnienia istotnych informacji wpływających na rynek.
 
 ---
 
 ## ⚙️ Jak działa model?
 1. Pobiera treść komunikatu giełdowego.
 2. Przetwarza tekst za pomocą NLP (tokenizacja, embeddingi, analiza sentymentu).
-3. Wykorzystuje dane rynkowe i cechy fundamentalne.
-4. Przewiduje wpływ komunikatu na zmianę ceny akcji w danym dniu.
+3. Przewiduje czy komunikat może wywrzeć istotny wpływ na zmianę ceny akcji w danym dniu. Poprzez istotny wpływ rozumie się zmianę kursu akcji danej spółki różniącą się o 0,75% vs. zmiana ceny tzw. szerokiego rynku (indeksu WIG).
 
 ---
 
 ## 🛠 Technologie
-- 📊 **Uczenie maszynowe:** Scikit-Learn, XGBoost, TensorFlow
-- 🔍 **Analiza tekstu (NLP):** spaCy, Transformers, TF-IDF
-- 📈 **Dane finansowe:** Yahoo Finance API, GPW API
-- 🛠 **Feature Engineering:** PCA, normalizacja, one-hot encoding
+- 📊 **Uczenie maszynowe:** caret, randomForest, e1071
+- 🔍 **Analiza tekstu (NLP):** quanteda, lsa, tokenizacja, TF-IDF, bigramy
+- 📈 **Dane źródłowe:** Analiza klasyfikacji tekstu (modelowanie etykiet)
+- 🛠 **Feature Engineering:** Redukcja wymiarowości (irlba – SVD), podobieństwo kosinusowe, długość tekstu
+
 
 ---
 
 ## 📌 Przykład użycia
-Poniżej znajduje się przykład użycia modelu do predykcji wpływu komunikatu na cenę akcji:
 
-```python
-from model import StockImpactPredictor
+```R
+libraries <- c("caret", "quanteda", "e1071", "ggplot2", "irlba", "randomForest", "dplyr", "readxl", "doSNOW", "lsa")
+lapply(libraries, require, character.only = TRUE)
 
-# Inicjalizacja modelu
-predictor = StockImpactPredictor()
+load_data <- function(path) {
+  dataset <- read_excel(path) %>% select(2, 4) %>% rename(Text = 2, Label = 4)
+  dataset$Label <- as.factor(dataset$Label)
+  dataset$TextLength <- nchar(dataset$Text)
+  dataset
+}
 
-# Przykładowy komunikat giełdowy
-message = "Spółka XYZ ogłosiła wzrost przychodów o 20% w Q1 2024."
+split_data <- function(dataset, split_ratio = 0.7, seed = 32911) {
+  set.seed(seed)
+  indexes <- createDataPartition(dataset$Label, p = split_ratio, list = FALSE)
+  list(train = dataset[indexes,], test = dataset[-indexes,])
+}
 
-# Predykcja wpływu na cenę akcji
-impact = predictor.predict(message)
-print(f'Przewidywany wpływ: {impact}')
-```
+process_text <- function(text_data, stopwords) {
+  tokens <- tokens(text_data, what = "word", remove_numbers = TRUE, remove_punct = TRUE, remove_symbols = TRUE, remove_hyphens = TRUE)
+  tokens <- tokens_tolower(tokens)
+  tokens_select(tokens, stopwords, selection = "remove")
+}
 
----
+calculate_tfidf <- function(tokens) {
+  dfm_data <- dfm(tokens, tolower = FALSE)
+  tf <- function(row) row / sum(row)
+  idf <- function(col) log10(length(col) / length(which(col > 0)))
+  
+  tf_matrix <- apply(as.matrix(dfm_data), 1, tf)
+  idf_vector <- apply(as.matrix(dfm_data), 2, idf)
+  t(apply(tf_matrix, 2, function(x) x * idf_vector))
+}
 
-## 📂 Struktura katalogów
-```
-📦 stock-impact-predictor
- ┣ 📂 data  # Dane historyczne
- ┣ 📂 models  # Zapisane modele ML
- ┣ 📂 src  # Kod źródłowy
- ┃ ┣ 📜 preprocessing.py  # Feature engineering
- ┃ ┣ 📜 nlp_analysis.py  # Analiza tekstu
- ┃ ┗ 📜 model.py  # Kluczowy model predykcyjny
- ┣ 📜 README.md  # Dokumentacja
- ┣ 📜 requirements.txt  # Lista zależności
- ┗ 📜 main.py  # Główna aplikacja
-```
+create_cv_control <- function() {
+  set.seed(49701)
+  trainControl(method = "repeatedcv", number = 10, repeats = 3)
+}
+
+train_model <- function(data, method, cv_control) {
+  cl <- makeCluster(detectCores() - 1, type = "SOCK")
+  registerDoSNOW(cl)
+  model <- train(Label ~ ., data = data, method = method, trControl = cv_control, tuneLength = 7)
+  stopCluster(cl)
+  model
+}
 
 ---
 
@@ -81,19 +85,12 @@ print(f'Przewidywany wpływ: {impact}')
 ✅ **F1-score:** 0.78  
 ✅ **Przetestowany na tysiącach komunikatów**  
 
----
-
-## 🤝 Współpraca
-Jeśli chcesz pomóc w rozwoju projektu, zapraszamy do kontrybucji! 🎉
-1. Zrób fork repozytorium
-2. Stwórz nową gałąź (`feature-nazwa`)
-3. Wprowadź zmiany i prześlij Pull Request
 
 ---
 
-## 📜 Licencja
-Projekt jest dostępny na licencji **MIT**. Więcej informacji w pliku [LICENSE](LICENSE).
+## 📜 Dostęp do kodu
+Kod źródłowy tego projektu nie jest publicznie dostępny.  
+Jeśli jesteś zainteresowany współpracą lub testowaniem modelu, skontaktuj się ze mną:  
 
----
+📧 Email: [aleksander.herc@wp.pl](mailto:aleksander.herc@wp.pl) 
 
-🔗 **Autor:** [Twoje Imię](https://github.com/twoj-profil) | 📧 kontakt@twoja-domena.com
